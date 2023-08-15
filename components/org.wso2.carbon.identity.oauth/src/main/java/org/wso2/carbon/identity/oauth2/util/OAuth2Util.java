@@ -2173,6 +2173,8 @@ public class OAuth2Util {
 
     /**
      * This is used to get the tenant domain of an application by clientId.
+     * Note: With the improvement done to make client id tenant unique, the underline method will always query
+     * DB with the tenant id retrieved from IdentityTenantUtils class.
      *
      * @param clientId Consumer key of Application
      * @return Tenant Domain
@@ -2184,6 +2186,30 @@ public class OAuth2Util {
 
         OAuthAppDO oAuthAppDO = getAppInformationByClientId(clientId);
         return getTenantDomainOfOauthApp(oAuthAppDO);
+    }
+
+    /**
+     * This is used to get the tenant domain of an application by clientId without using the tenant domain
+     * available in thread local (IdentityTenantUtils).
+     *
+     * @param clientId Consumer key of Application.
+     * @return Tenant domain.
+     * @throws IdentityOAuth2Exception      Thrown if an error occurred while retrieving the tenant domain.
+     * @throws InvalidOAuthClientException  Thrown if the consumer key is invalid.
+     */
+    public static String getTenantDomainOfOauthAppWithoutTenant(String clientId)
+            throws IdentityOAuth2Exception, InvalidOAuthClientException {
+
+        if (StringUtils.isEmpty(clientId)) {
+            throw new InvalidOAuthClientException("Empty client id provided.");
+        }
+
+        OAuthAppDO oAuthAppDO = AppInfoCache.getInstance().getValueFromCache(clientId);
+        if (oAuthAppDO != null) {
+            return getTenantDomainOfOauthApp(oAuthAppDO);
+        } else {
+            return new OAuthAppDAO().getAppTenantByConsumerKey(clientId);
+        }
     }
 
     /**

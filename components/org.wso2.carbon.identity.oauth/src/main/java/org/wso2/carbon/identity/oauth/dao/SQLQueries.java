@@ -200,6 +200,11 @@ public class SQLQueries {
         public static final String REMOVE_APP_SCOPE_VALIDATORS = "DELETE FROM IDN_OAUTH2_SCOPE_VALIDATORS " +
                 "WHERE APP_ID=?";
 
+        // This query is required to retrieve the tenant information given consumer key in case where tenant
+        // qualified url's are disabled.
+        public static final String GET_APP_TENANT_WITH_CONSUMER_KEY = "SELECT TENANT_ID FROM " +
+                "IDN_OAUTH_CONSUMER_APPS WHERE CONSUMER_KEY=?";
+
         private OAuthAppDAOSQLQueries() {
         }
     }

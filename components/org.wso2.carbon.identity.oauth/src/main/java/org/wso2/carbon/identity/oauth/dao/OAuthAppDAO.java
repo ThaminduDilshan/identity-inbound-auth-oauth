@@ -488,6 +488,50 @@ public class OAuthAppDAO {
         }
     }
 
+    /**
+     * Retrieve the tenant domain given the consumer key of an application.
+     * Expected to be used when the consumer key is unique across the server. I.e. when tenant qualified urls
+     * are disabled.
+     *
+     * @param consumerKey Consumer key.
+     * @return Tenant domain of the application which has the given consumer key.
+     * @throws InvalidOAuthClientException  Thrown if the consumer key is invalid.
+     * @throws IdentityOAuth2Exception      Thrown if an error occurred while retrieving the tenant domain.
+     */
+    public String getAppTenantByConsumerKey(String consumerKey)
+            throws InvalidOAuthClientException, IdentityOAuth2Exception {
+
+        int tenantId = -1;
+        int appCount = 0;
+        try (Connection connection = IdentityDatabaseUtil.getDBConnection(false)) {
+            String sqlQuery = SQLQueries.OAuthAppDAOSQLQueries.GET_APP_TENANT_WITH_CONSUMER_KEY;
+            try (PreparedStatement prepStmt = connection.prepareStatement(sqlQuery)) {
+                prepStmt.setString(1, consumerKey);
+                try (ResultSet rSet = prepStmt.executeQuery()) {
+                    while (rSet.next()) {
+                        appCount++;
+                        tenantId = rSet.getInt(1);
+                    }
+
+                    if (tenantId == -1) {
+                        handleRequestForANonExistingConsumerKey(consumerKey);
+                    }
+                    if (appCount > 1) {
+                        String message = "There exists multiple applications for the given consumer key: " +
+                                consumerKey;
+                        LOG.debug(message);
+                        throw new InvalidOAuthClientException(message);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            throw new IdentityOAuth2Exception(
+                    "Error while retrieving the tenant id for the consumer key: " + consumerKey, e);
+        }
+
+        return IdentityTenantUtil.getTenantDomain(tenantId);
+    }
+
     private boolean validateUserForOwnerUpdate(OAuthAppDO oAuthAppDO) throws IdentityOAuthAdminException {
 
         String userName = null;
